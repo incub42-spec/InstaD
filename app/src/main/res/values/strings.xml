@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">InstaD</string>
+    <string name="hint_url">Ссылка на Reels</string>
+    <string name="btn_download">Скачать</string>
+    <string name="btn_share">Поделиться</string>
+    <string name="status_idle">Вставьте ссылку или поделитесь ей из Instagram</string>
+    <string name="status_init">Подготовка движка…</string>
+    <string name="status_downloading">Скачивание… %1$d%%</string>
+    <string name="status_processing">Обработка…</string>
+    <string name="status_done">Готово! Видео сохранено в галерею</string>
+    <string name="status_done_photo">Готово! Фото сохранено в галерею</string>
+    <string name="status_error">Ошибка: %1$s</string>
+    <string name="error_empty_url">Вставьте ссылку на видео</string>
+    <string name="share_title">Отправить видео</string>
+    <string name="btn_login">Войти в Instagram</string>
+    <string name="btn_login_done">Instagram: вход выполнен</string>
+    <string name="login_done">Вход выполнен, можно скачивать</string>
+</resources>
