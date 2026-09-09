@@ -102,6 +102,12 @@ class MainActivity : AppCompatActivity() {
                         System.currentTimeMillis().toString()).apply { mkdirs() }
                     val request = YoutubeDLRequest(url).apply {
                         addOption("--no-mtime")
+                        // Instagram стал отдавать видео и звук раздельными DASH-потоками
+                        // в VP9. Их пришлось бы склеивать через ffmpeg, а VP9 в mp4
+                        // плохо принимают галерея и мессенджеры. Поэтому сначала берём
+                        // готовый единый файл (H.264+AAC) и лишь при его отсутствии —
+                        // склейку раздельных потоков.
+                        addOption("-f", "b/bv*+ba/best")
                         addOption("-o", "${dir.absolutePath}/%(id)s.%(ext)s")
                         // Если пользователь вошёл в Instagram — качаем от имени
                         // его сессии, иначе часть постов недоступна
