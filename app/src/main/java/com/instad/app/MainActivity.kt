@@ -1,7 +1,11 @@
 package com.instad.app
 
 import android.content.ContentValues
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -9,6 +13,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -29,6 +34,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var shareBtn: Button
     private lateinit var progressBar: ProgressBar
     private lateinit var statusText: TextView
+    private lateinit var previewImage: ImageView
+    private lateinit var previewHint: TextView
 
     /** Uri последнего скачанного видео (MediaStore или FileProvider) для пересылки */
     private var lastVideoUri: Uri? = null
@@ -44,6 +51,10 @@ class MainActivity : AppCompatActivity() {
         shareBtn = findViewById(R.id.shareBtn)
         progressBar = findViewById(R.id.progressBar)
         statusText = findViewById(R.id.statusText)
+        previewImage = findViewById(R.id.previewImage)
+        previewHint = findViewById(R.id.previewHint)
+        previewImage.setOnClickListener { openInGallery() }
+        PhotoFallback.debugDir = filesDir
 
         downloadBtn.setOnClickListener {
             val url = urlInput.text.toString().trim()
@@ -55,6 +66,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         shareBtn.setOnClickListener { shareVideo() }
+
+        findViewById<Button>(R.id.downloadsBtn).setOnClickListener {
+            startActivity(Intent(this, DownloadsActivity::class.java))
+        }
 
         findViewById<Button>(R.id.loginBtn).setOnClickListener {
             startActivity(Intent(this, LoginActivity::class.java))
@@ -88,6 +103,8 @@ class MainActivity : AppCompatActivity() {
         downloading = true
         downloadBtn.isEnabled = false
         shareBtn.visibility = android.view.View.GONE
+        previewImage.visibility = android.view.View.GONE
+        previewHint.visibility = android.view.View.GONE
         progressBar.visibility = android.view.View.VISIBLE
         progressBar.isIndeterminate = true
         statusText.text = getString(R.string.status_init)
@@ -138,6 +155,13 @@ class MainActivity : AppCompatActivity() {
                 lastVideoUri = withContext(Dispatchers.IO) { exportMedia(file) }
                 lastMime = mimeTypeOf(file)
 
+                // Превью скачанного: кадр видео или само фото; тап открывает в галерее
+                withContext(Dispatchers.IO) { makeThumb(file) }?.let {
+                    previewImage.setImageBitmap(it)
+                    previewImage.visibility = android.view.View.VISIBLE
+                    previewHint.visibility = android.view.View.VISIBLE
+                }
+
                 statusText.text = getString(
                     if (isImage(file)) R.string.status_done_photo else R.string.status_done)
                 shareBtn.visibility = android.view.View.VISIBLE
@@ -155,7 +179,7 @@ class MainActivity : AppCompatActivity() {
         file.extension.lowercase() in setOf("jpg", "jpeg", "png", "webp", "heic")
 
     /**
-     * Сохраняет файл в галерею (Movies/InstaD или Pictures/InstaD) и возвращает
+     * Сохраняет файл в галерею — всё в DCIM/InstaD, чтобы был один альбом и возвращает
      * Uri для пересылки. На Android 9 и ниже галерея недоступна без разрешений —
      * файл остаётся в папке приложения, пересылка работает через FileProvider.
      */
@@ -168,7 +192,7 @@ class MainActivity : AppCompatActivity() {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, "InstaD_${file.name}")
                 put(MediaStore.MediaColumns.MIME_TYPE, mimeTypeOf(file))
                 put(MediaStore.MediaColumns.RELATIVE_PATH,
-                    (if (image) Environment.DIRECTORY_PICTURES else Environment.DIRECTORY_MOVIES) + "/InstaD")
+                    Environment.DIRECTORY_DCIM + "/InstaD")
                 put(MediaStore.MediaColumns.IS_PENDING, 1)
             }
             val resolver = contentResolver
@@ -200,6 +224,42 @@ class MainActivity : AppCompatActivity() {
         val msg = e.message ?: return e.javaClass.simpleName
         val errors = msg.lines().filter { it.startsWith("ERROR:") }
         return if (errors.isNotEmpty()) errors.joinToString("\n") else msg
+    }
+
+    /** Миниатюра для превью: для фото — уменьшенная картинка, для видео — кадр на 1-й секунде */
+    private fun makeThumb(file: File): Bitmap? = runCatching {
+        if (isImage(file)) {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.path, bounds)
+            var sample = 1
+            while (bounds.outWidth / sample > 1080) sample *= 2
+            BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
+        } else {
+            val mmr = MediaMetadataRetriever()
+            try {
+                mmr.setDataSource(file.path)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1)
+                    mmr.getScaledFrameAtTime(1_000_000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 720, 1280)
+                else
+                    mmr.getFrameAtTime(1_000_000)
+            } finally {
+                mmr.release()
+            }
+        }
+    }.getOrNull()
+
+    /** Открыть скачанный файл в галерее / системном просмотрщике */
+    private fun openInGallery() {
+        val uri = lastVideoUri ?: return
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, lastMime)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try {
+            startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(this, R.string.error_no_viewer, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun shareVideo() {

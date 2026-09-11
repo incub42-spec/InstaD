@@ -3,6 +3,15 @@
     <string name="app_name">InstaD</string>
     <string name="hint_url">Ссылка на Reels</string>
     <string name="btn_download">Скачать</string>
+    <string name="preview_hint">Нажмите, чтобы открыть в галерее</string>
+    <string name="error_no_viewer">Нет приложения для просмотра</string>
+    <string name="btn_downloads">Мои загрузки</string>
+    <string name="downloads_title">Мои загрузки</string>
+    <string name="downloads_empty">Пока ничего не скачано</string>
+    <string name="action_share">Поделиться</string>
+    <string name="action_delete">Удалить</string>
+    <string name="delete_confirm">Удалить этот файл из галереи?</string>
+    <string name="delete_failed">Не удалось удалить — удалите из галереи</string>
     <string name="btn_share">Поделиться</string>
     <string name="status_idle">Вставьте ссылку или поделитесь ей из Instagram</string>
     <string name="status_init">Подготовка движка…</string>

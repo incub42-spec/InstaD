@@ -12,6 +12,9 @@ import java.net.URL
  */
 object PhotoFallback {
 
+    /** Куда складывать HTML для отладки, если фото не нашлось (внутреннее хранилище) */
+    @JvmStatic var debugDir: File? = null
+
     // Именно такой «минимальный» UA заставляет Instagram отдать простую
     // серверную разметку embed-страницы вместо JS-приложения
     private const val UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
@@ -36,6 +39,8 @@ object PhotoFallback {
             imgUrl = extractImageUrl(auth)
             if (imgUrl == null) {
                 android.util.Log.e("InstaD", "auth len=${auth.length} head=${auth.take(1200)}")
+                (debugDir ?: dir).resolve("embed_anon.html").writeText(anon)
+                (debugDir ?: dir).resolve("embed_auth.html").writeText(auth)
                 throw IllegalStateException("в посте не нашлось ни видео, ни фото")
             }
         }
