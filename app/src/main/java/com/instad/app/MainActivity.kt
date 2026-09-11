@@ -29,6 +29,10 @@ import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
+    private companion object {
+        const val KEY_LAST_SHARED = "last_shared_url"
+    }
+
     private lateinit var urlInput: EditText
     private lateinit var downloadBtn: Button
     private lateinit var shareBtn: Button
@@ -75,7 +79,9 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, LoginActivity::class.java))
         }
 
-        handleIntent(intent)
+        // Только при первом создании: при пересоздании экрана (смена размера окна,
+        // возврат из «недавних») тот же intent приходит снова, и качать повторно не нужно
+        if (savedInstanceState == null) handleIntent(intent, fresh = false)
     }
 
     override fun onResume() {
@@ -86,15 +92,25 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        handleIntent(intent)
+        setIntent(intent)
+        handleIntent(intent, fresh = true)
     }
 
-    /** Ссылка, прилетевшая через «Поделиться» из Instagram */
-    private fun handleIntent(intent: Intent?) {
+    /**
+     * Ссылка, прилетевшая через «Поделиться» из Instagram.
+     * [fresh] = true — реальное новое действие пользователя (onNewIntent), качаем всегда.
+     * [fresh] = false — intent, с которым задача была запущена когда-то; Android
+     * доставляет его снова при перезапуске из «недавних», поэтому ту же ссылку,
+     * что уже обрабатывали, второй раз не качаем — только показываем в поле.
+     */
+    private fun handleIntent(intent: Intent?, fresh: Boolean) {
         if (intent?.action != Intent.ACTION_SEND || intent.type != "text/plain") return
         val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return
         val url = Regex("""https?://\S+""").find(text)?.value ?: return
         urlInput.setText(url)
+        val prefs = getSharedPreferences("main", MODE_PRIVATE)
+        if (!fresh && prefs.getString(KEY_LAST_SHARED, null) == url) return
+        prefs.edit().putString(KEY_LAST_SHARED, url).apply()
         startDownload(url)
     }
 
