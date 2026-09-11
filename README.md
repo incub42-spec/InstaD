@@ -26,7 +26,7 @@ Android-приложение для скачивания видео (Reels) и �
 gradlew.bat assembleDebug
 ```
 
-Готовый APK: `app/build/outputs/apk/debug/app-debug.apk`.
+Готовый APK для установки на телефон — на странице [Releases](https://github.com/incub42-spec/InstaD/releases) (при установке Android попросит разрешить установку из неизвестных источников). Собранный локально debug-APK: `app/build/outputs/apk/debug/app-debug.apk`, релизный — `gradlew.bat assembleRelease` → `app/build/outputs/apk/release/app-release.apk`.
 
 Важно: Gradle должен быть версии 9.5.x — AGP 8.x несовместим с Gradle 9.6+.
 

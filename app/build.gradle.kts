@@ -12,7 +12,7 @@ android {
         minSdk = 24
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         ndk {
             // Python/yt-dlp внутри библиотеки — нативные бинарники, оставляем
@@ -21,9 +21,21 @@ android {
         }
     }
 
+    signingConfigs {
+        // Релиз подписываем стандартным debug-ключом Android Studio: это личное
+        // приложение, и так релизная сборка обновляет уже установленную без переустановки
+        create("release") {
+            storeFile = File(System.getProperty("user.home"), ".android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
